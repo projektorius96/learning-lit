@@ -1,9 +1,17 @@
 import { LitElement, html } from 'lit';
 import { UNDERSCORE, HYPHENMINUS } from '../unicode_constants';
 
+const GlobalStaticPropsConfig = {
+    attribute: false, /* DEV_NOTE # ignores {converter, reflect, type}, hence no attributes mapping exposed to custom element markup */
+    state: true, /* DEV_NOTE # enforces Lit's internal reactive state && [optionally] declare hasChange as follows: */
+    hasChanged(newValue, oldValue){
+        return newValue !== oldValue;
+    }
+}
+
 /* DEV_ NOTE # Many thanks ChatGPTv3.5 for help demystifying Lit docs ♥ !
 
-GOAL # declare a reactive property change changing LitElement's static properties accessor via Lit Events
+    GOAL # declare a reactive property change changing LitElement's static properties accessor via Lit Events
 
 */
 // export class X_COUNTER extends LitElement {
@@ -11,9 +19,9 @@ GOAL # declare a reactive property change changing LitElement's static propertie
 //         counter: { type: Number },
 //     };
 
-//     constructor(arbitraryInitValue) {
+//     constructor() {
 //         super();
-//         this.counter = arbitraryInitValue || 0;
+//         this.counter = 0
 //     }
 
 //     render() {
@@ -32,46 +40,51 @@ GOAL # declare a reactive property change changing LitElement's static propertie
 
 /* DEV_ NOTE # Many thanks ChatGPTv3.5 for help demystifying Lit docs ♥ !
 
-GOAL # declare a reactive property change via instance property change in a way that it would avoid LitElement prototype reactive property accessor "shadowing", see for [link]
-[cont'd]@link{https://lit.dev/docs/components/properties/#avoiding-issues-with-class-fields} 
+    GOAL # declare a reactive property change via instance property change in a way that it would avoid LitElement prototype reactive property accessor "shadowing", see for [link]
+    [cont'd]@link{https://lit.dev/docs/components/properties/#avoiding-issues-with-class-fields} 
 
 */
 export class X_COUNTER extends LitElement {
     static properties = {
-        _counter : {
-            attribute: 'counter'
+        // id is public field
+        id : {
+            ...GlobalStaticPropsConfig,
         }
     }
 
     constructor() {
         super();
-        this._counter = 0; // Use a private instance property
+        this.id = 1;
     }
 
     get counter() {
-        return this._counter;
+        return this.id;
     }
 
-    set counter(value) {
-        if (this._counter !== value) {
-            this._counter = value;
-            this.requestUpdate(X_COUNTER.properties._counter.attribute, null); // Manually trigger update
+    set counter(new_value) {
+        const { hasChanged : diff } = this.constructor.properties.id;
+        if ( diff(new_value, this.id) && /* === */ ( this.id = new_value ) /* === */ ) {
+
+            /* DEV_NOTE # this.requestUpdate should be called when an element should update based on some state not triggered by setting a reactive property, also implementing arbitrary setter is what we doing right now ! */
+            this.requestUpdate('counter' /* + currentIndex@int incoming from matrix iterator */, this.id); // Manually trigger update [recommended, but not mandatory to be called]
+        
         }
     }
 
     render() {
         return html`
         <div>
-            <p>Counter: ${this.counter}</p>
+            <p>Counter: ${this.id}</p>
             <button @click=${this.increment}>Increment</button>
         </div>
         `;
     }
 
     increment() {
-        this.counter++;
+        this.id++;
     }
 }
+
 customElements.define(X_COUNTER.name.toLowerCase().replace(UNDERSCORE, HYPHENMINUS), X_COUNTER)
 
 
